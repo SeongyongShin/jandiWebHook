@@ -34,7 +34,7 @@ jobs:
         fi
 
         # 공휴일 JSON에서 날짜 조회
-        IS_HOLIDAY=$(jq -r --arg d "$TODAY_KST" 'has($d)' jandiWebHook/holidays_2025.json)
+        IS_HOLIDAY=$(jq -r --arg d "$TODAY_KST" 'has($d)' holidays_2025.json)
         if [ "$IS_HOLIDAY" = "true" ]; then
           echo "$TODAY_KST 는 공휴일입니다."
           echo "skip=true" >> "$GITHUB_OUTPUT"
