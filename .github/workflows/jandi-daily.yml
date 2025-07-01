@@ -2,62 +2,63 @@ name: JANDI Weekday 8AM Notifier (KST, 2025)
 
 on:
   # ┌ 분 ┬ 시 ┬ 일 ┬ 월 ┬ 요 ┐   (UTC)
-  #   0   23   *   *   *        → KST 08:00 (+9h)
+  #  0   23   *   *   *       → KST 08:00
   schedule:
-    - cron:  '10 2 * * *'
-  workflow_dispatch:            # 수동 실행도 가능
+    - cron: '0 23 * * *'
+  workflow_dispatch:
 
 jobs:
   notify:
     runs-on: ubuntu-latest
 
-
     steps:
-    - name: Show all files
-      run: find . -type f
-        
-    # 1) 오늘(한국) 날짜 계산, 주말/공휴일 여부 판정
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
     - name: Decide whether to send
       id: decide
       run: |
         set -e
         export TZ='Asia/Seoul'
 
-        TODAY_KST=$(date '+%Y-%m-%d')
-        WEEKDAY=$(date '+%u')               # 1=월 … 7=일
-        echo "오늘 KST 날짜: $TODAY_KST (요일 $WEEKDAY)"
+        TODAY=$(date +%Y-%m-%d)
+        WEEKDAY=$(date +%u)  # 1 = Monday, ..., 7 = Sunday
+
+        echo "오늘 날짜: $TODAY (요일 $WEEKDAY)"
 
         # 주말이면 스킵
         if [ "$WEEKDAY" -ge 6 ]; then
-          echo "skip=true" >> "$GITHUB_OUTPUT"
+          echo "skip=true" >> $GITHUB_OUTPUT
           exit 0
         fi
 
-        # 공휴일 JSON에서 날짜 조회
-        IS_HOLIDAY=$(jq -r --arg d "$TODAY_KST" 'has($d)' holidays_2025.json)
-        if [ "$IS_HOLIDAY" = "true" ]; then
-          echo "$TODAY_KST 는 공휴일입니다."
-          echo "skip=true" >> "$GITHUB_OUTPUT"
-          exit 0
-        fi
+        # 2025년 공휴일 리스트 (하드코딩)
+        HOLIDAYS="2025-01-01 2025-03-01 2025-05-05 2025-06-06 2025-08-15 2025-09-14 2025-09-15 2025-09-16 2025-10-03 2025-10-09 2025-12-25"
 
-        echo "skip=false"          >> "$GITHUB_OUTPUT"
-        echo "today=$TODAY_KST"    >> "$GITHUB_OUTPUT"
+        for HOLIDAY in $HOLIDAYS; do
+          if [ "$TODAY" = "$HOLIDAY" ]; then
+            echo "$TODAY 는 공휴일입니다. 알림을 건너뜁니다."
+            echo "skip=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+        done
 
-    # 2) 잔디 Webhook 호출 (skip=false 일 때만)
+        echo "skip=false" >> $GITHUB_OUTPUT
+        echo "today=$TODAY" >> $GITHUB_OUTPUT
+
     - name: Send message to JANDI
       if: steps.decide.outputs.skip == 'false'
       env:
         WEBHOOK: ${{ secrets.JANDI_WEBHOOK_URL }}
-        TODAY:   ${{ steps.decide.outputs.today }}
+        TODAY: ${{ steps.decide.outputs.today }}
       run: |
         curl -X POST "$WEBHOOK" \
           -H "Accept: application/vnd.tosslab.jandi-v2+json" \
           -H "Content-Type: application/json" \
           -d '{
-                "body": " '${TODAY}' 알림 테스트 입니다!",
+                "body": " '${TODAY}' 알림 테스트입니다!",
                 "connectColor": "#29B6F6",
-                "connectInfo":[
-                  { "title":"날짜", "description":"'"${TODAY}"'" }
+                "connectInfo": [
+                  { "title": "날짜", "description": "'"${TODAY}"'" }
                 ]
               }'
