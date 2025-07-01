@@ -1,10 +1,5 @@
 name: JANDI Weekday 8AM Notifier (KST, 2025)
 
-    - name: Debug: list repository files
-      run: |
-        echo "🔍 이 시점의 파일 목록입니다:"
-        ls -R .
-
 on:
   # ┌ 분 ┬ 시 ┬ 일 ┬ 월 ┬ 요 ┐   (UTC)
   #   0   23   *   *   *        → KST 08:00 (+9h)
