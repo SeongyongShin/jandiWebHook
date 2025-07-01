@@ -11,9 +11,11 @@ jobs:
   notify:
     runs-on: ubuntu-latest
 
+
     steps:
-    - name: Debug: list repository files
+    - name: list repository files
       run: ls -R .
+        
     # 1) 오늘(한국) 날짜 계산, 주말/공휴일 여부 판정
     - name: Decide whether to send
       id: decide
